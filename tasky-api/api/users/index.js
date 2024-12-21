@@ -1,5 +1,6 @@
 import express from 'express';
 import User from './userModel';
+import asyncHandler from 'express-async-handler';
 
 const router = express.Router(); // eslint-disable-line
 
@@ -12,11 +13,22 @@ router.get('/', async (req, res) => {
 // register(Create)/Authenticate User
 router.post('/', async (req, res) => {
     if (req.query.action === 'register') {  //if action is 'register' then save to DB
+        try {
         await User(req.body).save();
         res.status(201).json({
             code: 201,
             msg: 'Successful created new user.',
         });
+        }catch (err) {
+            if (err.name === 'ValidationError') {
+                return res.status(400).json({
+                    code: 400,
+                    msg: 'Validation Error',
+                    errors: err.errors,
+                });
+            }
+            next(err);
+        }
     }
     else {  //Must be an authenticate then!!! Query the DB and check if there's a match
         const user = await User.findOne(req.body);
